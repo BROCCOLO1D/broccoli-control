@@ -16,6 +16,12 @@ import { erc20Abi } from '@/lib/erc20Abi';
 
 const zeroAddress = '0x0000000000000000000000000000000000000000' as Address;
 const configuredTokenAddress = (process.env.NEXT_PUBLIC_TOKEN_ADDRESS || zeroAddress) as Address;
+const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 11155111);
+
+function shortAddress(value?: string) {
+  if (!value) return 'Not connected';
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
 
 export default function Home() {
   const { address, isConnected } = useAccount();
@@ -28,6 +34,7 @@ export default function Home() {
 
   const tokenConfigured = isAddress(configuredTokenAddress) && configuredTokenAddress !== zeroAddress;
   const injectedConnector = connectors[0];
+  const networkAligned = chainId === configuredChainId;
 
   const { data: nativeBalance } = useBalance({ address });
   const { data: decimals = 18 } = useReadContract({
@@ -98,18 +105,36 @@ export default function Home() {
       : isConfirming ? `Transaction submitted: ${txHash}`
         : isConfirmed ? `Transfer confirmed: ${txHash}`
           : txHash ? `Transaction submitted: ${txHash}`
-            : 'Ready for a tidy token transfer.');
+            : 'Ready. No transaction in flight.');
 
   return (
-    <main className="shell">
-      <section className="hero card">
-        <div className="sprout" aria-hidden="true">🥦</div>
-        <p className="eyebrow">official wallet QA fixture</p>
-        <h1>Broccoli Control</h1>
-        <p className="lede">
-          A cheerful green ERC20 playground for connecting wallets, checking balances,
-          and sending tiny testnet broccoli bits.
-        </p>
+    <main className="app-shell">
+      <header className="topbar" aria-label="Application status">
+        <div className="brand-mark" aria-hidden="true">BC</div>
+        <div>
+          <p className="overline">Broccoli Control</p>
+          <p className="topbar-copy">Wallet QA ERC20 fixture / Sepolia-first</p>
+        </div>
+        <div className="topbar-status">
+          <span className={`status-dot ${isConnected ? 'is-live' : ''}`} aria-hidden="true" />
+          {isConnected ? 'wallet linked' : 'wallet offline'}
+        </div>
+      </header>
+
+      <section className="hero panel">
+        <div className="hero-copy">
+          <p className="eyebrow">Technical fixture / controlled surface</p>
+          <h1>Broccoli Control</h1>
+          <p className="lede">
+            A restrained ERC20 testbed for wallet connection, chain inspection, balance reads,
+            and deterministic token transfer QA. Black-and-white rails; broccoli-green signal.
+          </p>
+        </div>
+        <div className="hero-console" aria-label="Fixture summary">
+          <span>fixture: erc20-transfer</span>
+          <span>target-chain: {configuredChainId}</span>
+          <span>token: {tokenConfigured ? shortAddress(configuredTokenAddress) : 'unconfigured'}</span>
+        </div>
         <div className="actions">
           {!isConnected ? (
             <button
@@ -118,7 +143,7 @@ export default function Home() {
               disabled={!injectedConnector || isConnectPending}
               onClick={() => injectedConnector && connect({ connector: injectedConnector })}
             >
-              {isConnectPending ? 'Opening garden gate...' : 'Connect wallet'}
+              {isConnectPending ? 'Opening connector' : 'Connect wallet'}
             </button>
           ) : (
             <button data-testid="connect-wallet-button" className="button" onClick={() => disconnect()}>
@@ -128,69 +153,74 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="grid">
-        <article className="card info-card">
+      <section className="status-grid" aria-label="Runtime state">
+        <article className="metric panel">
           <span className="label">Connected account</span>
           <strong data-testid="connected-account" className="mono wrap">
             {address ?? 'Not connected'}
           </strong>
-          {nativeBalance && <small>{formatUnits(nativeBalance.value, nativeBalance.decimals)} {nativeBalance.symbol}</small>}
+          <small>{nativeBalance ? `${formatUnits(nativeBalance.value, nativeBalance.decimals)} ${nativeBalance.symbol}` : 'Native balance unavailable until connected'}</small>
         </article>
 
-        <article className="card info-card">
+        <article className="metric panel">
           <span className="label">Current chain</span>
-          <strong data-testid="current-chain">{chainId}</strong>
-          <small>Default fixture target: Sepolia (11155111)</small>
+          <strong data-testid="current-chain" className="mono">{chainId}</strong>
+          <small>{networkAligned ? 'Aligned with NEXT_PUBLIC_CHAIN_ID' : `Expected ${configuredChainId}`}</small>
         </article>
 
-        <article className="card info-card wide">
+        <article className="metric panel span-2">
           <span className="label">Token address</span>
           <strong data-testid="token-address" className="mono wrap">{configuredTokenAddress}</strong>
-          <small>{tokenConfigured ? 'Ready to read ERC20 state' : 'Set NEXT_PUBLIC_TOKEN_ADDRESS in .env.local'}</small>
+          <small>{tokenConfigured ? 'ERC20 reads enabled' : 'Set NEXT_PUBLIC_TOKEN_ADDRESS in .env.local'}</small>
         </article>
 
-        <article className="card info-card wide">
+        <article className="metric panel span-2 accent-panel">
           <span className="label">Token balance</span>
           <strong data-testid="token-balance">{tokenBalance}</strong>
         </article>
       </section>
 
-      <form className="card transfer" onSubmit={onTransfer}>
-        <div>
-          <p className="eyebrow">send sprouts</p>
-          <h2>Transfer token</h2>
-          <p>Use Sepolia test funds only. This fixture is intentionally simple for automation.</p>
+      <form className="transfer panel" onSubmit={onTransfer}>
+        <div className="section-heading">
+          <p className="eyebrow">Transfer harness</p>
+          <h2>Submit ERC20 transfer</h2>
+          <p>Keep this flow boring and stable: one recipient, one amount, one transaction status.</p>
         </div>
-        <label>
-          Recipient
-          <input
-            data-testid="transfer-recipient-input"
-            value={recipient}
-            onChange={(event) => setRecipient(event.target.value)}
-            placeholder="0x..."
-            autoComplete="off"
-          />
-        </label>
-        <label>
-          Amount
-          <input
-            data-testid="transfer-amount-input"
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-            placeholder="1.5"
-            inputMode="decimal"
-            autoComplete="off"
-          />
-        </label>
+
+        <div className="form-grid">
+          <label>
+            Recipient
+            <input
+              data-testid="transfer-recipient-input"
+              value={recipient}
+              onChange={(event) => setRecipient(event.target.value)}
+              placeholder="0x..."
+              autoComplete="off"
+              spellCheck={false}
+            />
+          </label>
+          <label>
+            Amount
+            <input
+              data-testid="transfer-amount-input"
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              placeholder="1.0"
+              inputMode="decimal"
+              autoComplete="off"
+            />
+          </label>
+        </div>
+
         <button
           data-testid="transfer-token-button"
           className="button primary"
           type="submit"
           disabled={!isConnected || !tokenConfigured || isWritePending || isConfirming}
         >
-          {isWritePending || isConfirming ? 'Tending transaction...' : 'Transfer broccoli'}
+          {isWritePending || isConfirming ? 'Awaiting settlement' : 'Transfer BROC'}
         </button>
-        <p data-testid="transfer-status" className="status">{transferStatus}</p>
+        <p data-testid="transfer-status" className="status mono">{transferStatus}</p>
       </form>
     </main>
   );
