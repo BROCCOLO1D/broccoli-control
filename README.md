@@ -1,6 +1,10 @@
 # Broccoli Control
 
-Broccoli Control is the official public fixture dapp for future `brocolli-test` wallet QA. It pairs a whimsical Next.js wallet UI with a Foundry-style ERC20 contract named **Broccoli Control Token** (`BROC`).
+Broccoli Control is the official public fixture dapp for `brocolli-test` wallet QA. It pairs a whimsical Next.js wallet UI with a Foundry-style ERC20 contract named **Broccoli Control Token** (`BROC`).
+
+![Broccoli Control running locally](docs/assets/readme/broccoli-control-local.png)
+
+![broccoli-control wallet QA output](docs/assets/readme/wallet-qa-output.png)
 
 ## Stack
 
@@ -8,6 +12,24 @@ Broccoli Control is the official public fixture dapp for future `brocolli-test` 
 - wagmi + viem + TanStack Query for wallet and ERC20 reads/writes
 - Foundry-style Solidity project with OpenZeppelin ERC20/Ownable
 - Default network: Sepolia (`11155111`)
+
+## Wallet QA with brocolli-test
+
+This repo imports `@brocolli-test/playwright` so the dapp owns its routes, selectors, and assertions while the package supplies wallet QA fixtures and local artifact handling.
+
+```ts
+import { expect, test } from '@brocolli-test/playwright';
+
+test('renders the fixture surface', async ({ page, walletArtifacts }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('connect-wallet-button')).toBeVisible();
+  await walletArtifacts.screenshot('broccoli-control-home');
+});
+```
+
+```bash
+npm run test:wallet
+```
 
 ## Stable QA selectors
 
@@ -91,6 +113,6 @@ NEXT_PUBLIC_CHAIN_ID=11155111
 - `.env`, Foundry `broadcast/`, `cache/`, `.next/`, and `node_modules/` are ignored.
 - Deployment artifacts may reveal addresses and transaction metadata; review before sharing.
 
-## Future `brocolli-test` integration
+## brocolli-test integration
 
-`brocolli-test` can import or target this repo as a deterministic fixture dapp. The stable selectors above are intended for wallet-connect, network-display, balance-read, and ERC20-transfer automation flows.
+This repo is a downstream consumer of `brocolli-test`, not a target baked into the package. Keep app-specific routes, selectors, and assertions here; keep reusable wallet/browser behavior in `@brocolli-test/playwright` and `@brocolli-test/wallet-browser`.

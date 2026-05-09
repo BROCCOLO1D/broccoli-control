@@ -16,6 +16,12 @@ build/
 cache/
 broadcast/
 
+# Wallet/browser QA artifacts (local-only unless explicitly promoted)
+.wallet-artifacts/
+playwright-report/
+test-results/
+traces/
+
 # misc
 .DS_Store
 *.pem
