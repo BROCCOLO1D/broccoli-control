@@ -30,9 +30,10 @@ test('renders the Broccoli Control wallet QA fixture surface', async ({ page, wa
 
   const screenshot = await walletArtifacts.screenshot('broccoli-control-home');
   const manifest = await walletArtifacts.writeProofManifest({
-    status: 'connected',
+    status: 'failed',
     origin: appOrigin,
     chainId: expectedChainId,
+    failure: new Error('UI readiness proof only; no wallet connection was attempted.'),
     attachments: [{ label: 'ui-ready', path: screenshot, contentType: 'image/png' }],
     notes: ['UI-ready proof only; no wallet account is connected in this smoke test.'],
   });
