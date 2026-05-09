@@ -1,0 +1,30 @@
+{
+  "name": "broccoli-control",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Broccoli Control fixture dapp for wallet QA with a Next.js frontend and Foundry-style ERC20 contract.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "lint": "eslint .",
+    "forge:build": "forge build",
+    "forge:deploy:sepolia": "forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.4.0",
+    "@tanstack/react-query": "^5.90.7",
+    "next": "^16.0.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "viem": "^2.39.0",
+    "wagmi": "^2.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.0",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.1",
+    "typescript": "^5.9.3"
+  }
+}
