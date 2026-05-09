@@ -4,7 +4,7 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'Broccoli Control',
-  description: 'A whimsical ERC20 fixture dapp for wallet QA.',
+  description: 'A restrained ERC20 fixture dapp for wallet QA.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

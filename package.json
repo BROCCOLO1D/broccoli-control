@@ -8,6 +8,8 @@
     "build": "next build",
     "lint": "eslint .",
     "forge:build": "forge build",
+    "forge:test": "forge test",
+    "forge:check": "forge fmt --check && forge build && forge test",
     "forge:deploy:sepolia": "forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv",
     "test:wallet": "playwright test"
   },
