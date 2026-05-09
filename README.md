@@ -31,6 +31,8 @@ test('renders the fixture surface', async ({ page, walletArtifacts }) => {
 npm run test:wallet
 ```
 
+Until the packages are published to npm, this repo vendors reviewed local `.tgz` builds under `vendor/brocolli-test/` so a fresh clone can install and run the fixture without depending on `/tmp` paths.
+
 ## Stable QA selectors
 
 The UI intentionally exposes these stable `data-testid` hooks:

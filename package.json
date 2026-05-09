@@ -21,8 +21,8 @@
     "wagmi": "^2.19.0"
   },
   "devDependencies": {
-    "@brocolli-test/playwright": "file:../../../../tmp/brocolli-local-tarballs/brocolli-test-playwright-0.0.0.npm-local.tgz",
-    "@brocolli-test/wallet-browser": "file:../../../../tmp/brocolli-local-tarballs/brocolli-test-wallet-browser-0.0.0.tgz",
+    "@brocolli-test/playwright": "file:vendor/brocolli-test/brocolli-test-playwright-0.0.0.npm-local.tgz",
+    "@brocolli-test/wallet-browser": "file:vendor/brocolli-test/brocolli-test-wallet-browser-0.0.0.tgz",
     "@playwright/test": "^1.59.1",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",
