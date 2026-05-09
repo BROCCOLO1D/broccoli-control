@@ -2,7 +2,13 @@
 
 Broccoli Control is the official public fixture dapp for `brocolli-test` wallet QA. It pairs a whimsical Next.js wallet UI with a Foundry-style ERC20 contract named **Broccoli Control Token** (`BROC`).
 
+![Broccoli Control connected wallet demo](docs/assets/readme/broccoli-control-connected.png)
+
+The screenshot above is a public-safe connected-state demo: the injected wallet account is masked, and no private key, seed phrase, RPC URL, or local path is shown.
+
 ![Broccoli Control running locally](docs/assets/readme/broccoli-control-local.png)
+
+The green panel below is a generated terminal-style wallet QA output card, not a second dapp UI.
 
 ![broccoli-control wallet QA output](docs/assets/readme/wallet-qa-output.png)
 
