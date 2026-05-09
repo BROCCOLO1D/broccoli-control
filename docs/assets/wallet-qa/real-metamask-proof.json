@@ -1,0 +1,19 @@
+{
+  "artifactType": "wallet-qa-proof",
+  "status": "connected",
+  "origin": "http://127.0.0.1:3000",
+  "maskedAccount": "0x8161…4b61",
+  "chainId": 11155111,
+  "artifacts": [
+    {
+      "label": "dapp-connected-redacted",
+      "file": "real-metamask-connected-redacted.png",
+      "sizeBytes": 239364,
+      "sha256": "c91f9ac49e8e62624c4b640c1dacf0fb14a4bd73a0602d4b7a97e42821d18ac7",
+      "contentType": "image/png"
+    }
+  ],
+  "notes": [
+    "Public-safe derivative from a headed Chromium + MetaMask run; full address is masked in the manifest and screenshot."
+  ]
+}

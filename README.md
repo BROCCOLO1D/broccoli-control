@@ -85,6 +85,17 @@ npm run forge:check
 
 `npm run test:wallet` starts a local Next.js server through Playwright unless `PLAYWRIGHT_BASE_URL` points at an already running app.
 
+### Wallet QA proofs
+
+The wallet QA suite uses `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.1` helpers to write and verify public-safe proof manifests. The default `npm run test:wallet` path is deterministic and does **not** touch a real wallet. A gated real MetaMask proof is available for local testnet profiles:
+
+```bash
+WALLET_QA_REAL_METAMASK=1 npm run test:wallet -- --grep "real MetaMask proof"
+npm run wallet:proof:metamask
+```
+
+See [docs/wallet-qa.md](docs/wallet-qa.md) for required env vars, redaction rules, the committed fail-closed assertion example, and real MetaMask artifact promotion steps.
+
 ## Contract workflow
 
 Install Foundry if needed:

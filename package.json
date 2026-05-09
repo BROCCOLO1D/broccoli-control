@@ -11,7 +11,8 @@
     "forge:test": "forge test",
     "forge:check": "forge fmt --check && forge build && forge test",
     "forge:deploy:sepolia": "forge script script/Deploy.s.sol:Deploy --rpc-url $SEPOLIA_RPC_URL --broadcast --verify -vvvv",
-    "test:wallet": "playwright test"
+    "test:wallet": "playwright test",
+    "wallet:proof:metamask": "xvfb-run -a node scripts/real-metamask-proof.mjs --promote-docs"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^5.4.0",
@@ -23,8 +24,8 @@
     "wagmi": "^2.19.0"
   },
   "devDependencies": {
-    "@broccolo1d/playwright": "^0.1.1",
-    "@broccolo1d/wallet-browser": "^0.1.1",
+    "@broccolo1d/playwright": "^0.2.1",
+    "@broccolo1d/wallet-browser": "^0.2.1",
     "@playwright/test": "^1.59.1",
     "@types/node": "^24.10.0",
     "@types/react": "^19.2.2",

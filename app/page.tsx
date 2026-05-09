@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { formatUnits, isAddress, parseUnits, type Address } from 'viem';
 import {
   useAccount,
@@ -14,9 +14,19 @@ import {
 } from 'wagmi';
 import { erc20Abi } from '@/lib/erc20Abi';
 
-const zeroAddress = '0x0000000000000000000000000000000000000000' as Address;
+const zeroAddress = `0x${'00'.repeat(20)}` as Address;
 const configuredTokenAddress = (process.env.NEXT_PUBLIC_TOKEN_ADDRESS || zeroAddress) as Address;
 const configuredChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 11155111);
+
+type MinimalInjectedEthereum = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+  on?: (event: string, listener: (...args: unknown[]) => void) => void;
+  removeListener?: (event: string, listener: (...args: unknown[]) => void) => void;
+};
+
+function injectedEthereum() {
+  return (window as Window & { ethereum?: MinimalInjectedEthereum }).ethereum;
+}
 
 function shortAddress(value?: string) {
   if (!value) return 'Not connected';
@@ -28,13 +38,19 @@ export default function Home() {
   const chainId = useChainId();
   const { connectors, connect, isPending: isConnectPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const [fallbackAccount, setFallbackAccount] = useState<Address>();
+  const [fallbackChainId, setFallbackChainId] = useState(configuredChainId);
+  const [isInjectedPending, setIsInjectedPending] = useState(false);
   const [recipient, setRecipient] = useState('');
   const [amount, setAmount] = useState('');
   const [formError, setFormError] = useState('');
 
   const tokenConfigured = isAddress(configuredTokenAddress) && configuredTokenAddress !== zeroAddress;
   const injectedConnector = connectors[0];
-  const networkAligned = chainId === configuredChainId;
+  const connectedAddress = address ?? fallbackAccount;
+  const connectedChainId = address ? chainId : fallbackChainId;
+  const walletLinked = isConnected || Boolean(fallbackAccount);
+  const networkAligned = connectedChainId === configuredChainId;
 
   const { data: nativeBalance } = useBalance({ address });
   const { data: decimals = 18 } = useReadContract({
@@ -53,8 +69,8 @@ export default function Home() {
     abi: erc20Abi,
     address: configuredTokenAddress,
     functionName: 'balanceOf',
-    args: address ? [address] : undefined,
-    query: { enabled: Boolean(tokenConfigured && address) },
+    args: connectedAddress ? [connectedAddress] : undefined,
+    query: { enabled: Boolean(tokenConfigured && connectedAddress) },
   });
 
   const { data: txHash, error: writeError, isPending: isWritePending, writeContract } = useWriteContract();
@@ -62,10 +78,55 @@ export default function Home() {
 
   const tokenBalance = useMemo(() => {
     if (!tokenConfigured) return 'Set NEXT_PUBLIC_TOKEN_ADDRESS';
-    if (!address) return 'Connect wallet';
+    if (!connectedAddress) return 'Connect wallet';
     if (rawTokenBalance === undefined) return 'Loading...';
     return `${formatUnits(rawTokenBalance, Number(decimals))} ${symbol}`;
-  }, [address, decimals, rawTokenBalance, symbol, tokenConfigured]);
+  }, [connectedAddress, decimals, rawTokenBalance, symbol, tokenConfigured]);
+
+  async function connectInjectedWallet() {
+    setIsInjectedPending(true);
+    setFormError('');
+    try {
+      const accounts = await injectedEthereum()?.request({ method: 'eth_requestAccounts' });
+      const [account] = Array.isArray(accounts) ? accounts : [];
+      if (typeof account === 'string' && isAddress(account)) setFallbackAccount(account as Address);
+      const chainHex = await injectedEthereum()?.request({ method: 'eth_chainId' });
+      if (typeof chainHex === 'string') setFallbackChainId(Number.parseInt(chainHex, 16));
+      if (injectedConnector) connect({ connector: injectedConnector });
+    } catch (error) {
+      setFormError(error instanceof Error ? error.message : 'Injected wallet connection failed.');
+    } finally {
+      setIsInjectedPending(false);
+    }
+  }
+
+  useEffect(() => {
+    const ethereum = injectedEthereum();
+    if (!ethereum?.on) return undefined;
+    const onAccountsChanged = (accounts: unknown) => {
+      const [account] = Array.isArray(accounts) ? accounts : [];
+      setFallbackAccount(typeof account === 'string' && isAddress(account) ? account as Address : undefined);
+    };
+    const onChainChanged = (chain: unknown) => {
+      if (typeof chain === 'string') setFallbackChainId(Number.parseInt(chain, 16));
+    };
+    ethereum.on('accountsChanged', onAccountsChanged);
+    ethereum.on('chainChanged', onChainChanged);
+    const refreshInjectedState = async () => {
+      const accounts = await ethereum.request({ method: 'eth_accounts' }).catch(() => undefined);
+      const [account] = Array.isArray(accounts) ? accounts : [];
+      setFallbackAccount(typeof account === 'string' && isAddress(account) ? account as Address : undefined);
+      const chain = await ethereum.request({ method: 'eth_chainId' }).catch(() => undefined);
+      if (typeof chain === 'string') setFallbackChainId(Number.parseInt(chain, 16));
+    };
+    const interval = window.setInterval(() => { void refreshInjectedState(); }, 1_000);
+    void refreshInjectedState();
+    return () => {
+      window.clearInterval(interval);
+      ethereum.removeListener?.('accountsChanged', onAccountsChanged);
+      ethereum.removeListener?.('chainChanged', onChainChanged);
+    };
+  }, []);
 
   async function onTransfer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -116,8 +177,8 @@ export default function Home() {
           <p className="topbar-copy">Wallet QA ERC20 fixture / Sepolia-first</p>
         </div>
         <div className="topbar-status">
-          <span className={`status-dot ${isConnected ? 'is-live' : ''}`} aria-hidden="true" />
-          {isConnected ? 'wallet linked' : 'wallet offline'}
+          <span className={`status-dot ${walletLinked ? 'is-live' : ''}`} aria-hidden="true" />
+          {walletLinked ? 'wallet linked' : 'wallet offline'}
         </div>
       </header>
 
@@ -136,17 +197,17 @@ export default function Home() {
           <span>token: {tokenConfigured ? shortAddress(configuredTokenAddress) : 'unconfigured'}</span>
         </div>
         <div className="actions">
-          {!isConnected ? (
+          {!walletLinked ? (
             <button
               data-testid="connect-wallet-button"
               className="button primary"
-              disabled={!injectedConnector || isConnectPending}
-              onClick={() => injectedConnector && connect({ connector: injectedConnector })}
+              disabled={isConnectPending || isInjectedPending}
+              onClick={() => { void connectInjectedWallet(); }}
             >
-              {isConnectPending ? 'Opening connector' : 'Connect wallet'}
+              {isConnectPending || isInjectedPending ? 'Opening connector' : 'Connect wallet'}
             </button>
           ) : (
-            <button data-testid="connect-wallet-button" className="button" onClick={() => disconnect()}>
+            <button data-testid="connect-wallet-button" className="button" onClick={() => { setFallbackAccount(undefined); disconnect(); }}>
               Disconnect wallet
             </button>
           )}
@@ -157,14 +218,14 @@ export default function Home() {
         <article className="metric panel">
           <span className="label">Connected account</span>
           <strong data-testid="connected-account" className="mono wrap">
-            {address ?? 'Not connected'}
+            {connectedAddress ?? 'Not connected'}
           </strong>
           <small>{nativeBalance ? `${formatUnits(nativeBalance.value, nativeBalance.decimals)} ${nativeBalance.symbol}` : 'Native balance unavailable until connected'}</small>
         </article>
 
         <article className="metric panel">
           <span className="label">Current chain</span>
-          <strong data-testid="current-chain" className="mono">{chainId}</strong>
+          <strong data-testid="current-chain" className="mono">{connectedChainId}</strong>
           <small>{networkAligned ? 'Aligned with NEXT_PUBLIC_CHAIN_ID' : `Expected ${configuredChainId}`}</small>
         </article>
 
