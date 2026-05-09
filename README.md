@@ -21,10 +21,10 @@ The green panel below is a generated terminal-style wallet QA output card, not a
 
 ## Wallet QA with brocolli-test
 
-This repo imports `@brocolli-test/playwright` so the dapp owns its routes, selectors, and assertions while the package supplies wallet QA fixtures and local artifact handling.
+This repo imports `@broccolo1d/playwright` so the dapp owns its routes, selectors, and assertions while the package supplies wallet QA fixtures and local artifact handling.
 
 ```ts
-import { expect, test } from '@brocolli-test/playwright';
+import { expect, test } from '@broccolo1d/playwright';
 
 test('renders the fixture surface', async ({ page, walletArtifacts }) => {
   await page.goto('/');
@@ -37,7 +37,7 @@ test('renders the fixture surface', async ({ page, walletArtifacts }) => {
 npm run test:wallet
 ```
 
-Until the packages are published to npm, this repo vendors reviewed local `.tgz` builds under `vendor/brocolli-test/` so a fresh clone can install and run the fixture without depending on `/tmp` paths.
+The wallet QA packages are now installed from npm under the `@broccolo1d/*` scope.
 
 ## Stable QA selectors
 
@@ -123,4 +123,4 @@ NEXT_PUBLIC_CHAIN_ID=11155111
 
 ## brocolli-test integration
 
-This repo is a downstream consumer of `brocolli-test`, not a target baked into the package. Keep app-specific routes, selectors, and assertions here; keep reusable wallet/browser behavior in `@brocolli-test/playwright` and `@brocolli-test/wallet-browser`.
+This repo is a downstream consumer of `brocolli-test`, not a target baked into the package. Keep app-specific routes, selectors, and assertions here; keep reusable wallet/browser behavior in `@broccolo1d/playwright` and `@broccolo1d/wallet-browser`.

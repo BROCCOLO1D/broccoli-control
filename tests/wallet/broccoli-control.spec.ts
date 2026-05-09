@@ -1,4 +1,4 @@
-import { test, expect } from '@brocolli-test/playwright';
+import { test, expect } from '@broccolo1d/playwright';
 
 test('renders the Broccoli Control wallet QA fixture surface', async ({ page, walletArtifacts }) => {
   await page.goto('/');
@@ -13,7 +13,7 @@ test('renders the Broccoli Control wallet QA fixture surface', async ({ page, wa
   const manifest = await walletArtifacts.writeManifest('broccoli-control-home', {
     status: 'verified-ui-ready',
     app: 'broccoli-control',
-    package: '@brocolli-test/playwright',
+    package: '@broccolo1d/playwright',
     screenshot: screenshot.split('/').pop(),
   });
 

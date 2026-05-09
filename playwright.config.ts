@@ -1,4 +1,4 @@
-import { defineWalletQaConfig } from '@brocolli-test/playwright';
+import { defineWalletQaConfig } from '@broccolo1d/playwright';
 
 export default defineWalletQaConfig({
   testDir: './tests/wallet',
