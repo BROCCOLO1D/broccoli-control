@@ -1,0 +1,6 @@
+{
+  "example": "doc-safe failed account assertion",
+  "maskedExpectedAccount": "0x1111…1111",
+  "maskedActualAccount": "0x2222…2222",
+  "failure": "Error: Connected account 0x2222…2222 did not match expected 0x1111…1111 at [path]/broccoli-control.spec.ts"
+}
