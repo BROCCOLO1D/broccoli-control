@@ -9,6 +9,8 @@ import {
   chainIdToHex,
   maskEthereumAddress,
   type WalletConnectionPromptInput,
+  type WalletSignaturePromptInput,
+  type WalletTransactionPromptInput,
 } from '@broccolo1d/wallet-browser';
 
 const appOrigin = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000';
@@ -91,6 +93,78 @@ test('records safe fail-closed wallet assertion examples', async ({ page, wallet
   await verifyWalletQaProofManifest(walletArtifacts.artifactDir);
   expect(failureManifest).toContain('fail-closed-assertion-example.json');
   expect(proofManifest).toContain('wallet-qa-proof.json');
+});
+
+test('documents canonical helper guardrails from the published package', async ({ wallet }) => {
+  const expectedChainIdHex = chainIdToHex(expectedChainId);
+  const typedData = JSON.stringify({
+    domain: { name: 'Broccoli Control', chainId: expectedChainId },
+    primaryType: 'Login',
+    message: { prompt: 'Sign in to Broccoli Control' },
+    types: { Login: [{ name: 'prompt', type: 'string' }] },
+  });
+  const approvals: string[] = [];
+  const prompt = createFailClosedWalletPromptDriver({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainIdHex,
+    delegate: {
+      async approveSignature(input: WalletSignaturePromptInput) {
+        approvals.push(`${input.signatureKind}:${input.expectedChainIdHex}`);
+      },
+      async approveTransaction(input: WalletTransactionPromptInput) {
+        approvals.push(`tx:${input.to ?? 'none'}:${input.value ?? '0'}`);
+      },
+    },
+  });
+
+  await prompt.approveSignature({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainIdHex,
+    signatureKind: 'personal_sign',
+    message: 'Sign in to Broccoli Control',
+  });
+  await prompt.approveSignature({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainIdHex,
+    signatureKind: 'typed_data',
+    message: typedData,
+  });
+  await prompt.approveTransaction({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    to: testAccount,
+    value: '0',
+  });
+
+  await expect(prompt.approveSignature({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainIdHex: '0x1',
+    signatureKind: 'personal_sign',
+    message: 'wrong chain',
+  })).rejects.toThrow(/chain.*fail closed/i);
+  await expect(wallet.switchChain({ expectedAccount: testAccount, expectedChainId })).rejects.toThrow(/network.*fail closed/i);
+  await expect(wallet.signMessage({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainId,
+    message: 'Sign in to Broccoli Control',
+  })).rejects.toThrow(/prompt.*fail closed/i);
+  await expect(wallet.signTypedData({
+    origin: appOrigin,
+    expectedAccount: testAccount,
+    expectedChainId,
+    message: typedData,
+  })).rejects.toThrow(/prompt.*fail closed/i);
+
+  expect(approvals).toEqual([
+    `personal_sign:${expectedChainIdHex}`,
+    `typed_data:${expectedChainIdHex}`,
+    `tx:${testAccount}:0`,
+  ]);
 });
 
 test.describe('real MetaMask proof', () => {
