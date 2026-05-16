@@ -18,6 +18,11 @@ import {
 } from '@broccolo1d/playwright';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const zeroAddress = `0x${'00'.repeat(20)}`;
+
+function isNonZeroAddress(value) {
+  return /^0x[a-fA-F0-9]{40}$/.test(value ?? '') && value.toLowerCase() !== zeroAddress;
+}
 
 function maskAddress(value) {
   return value ? maskEthereumAddress(value) : undefined;
@@ -509,9 +514,9 @@ export async function runRealMetaMaskProof(options = {}) {
     profileDirBasename: profileDir ? basename(profileDir) : undefined,
   };
 
-  if (!expectedAccount || !privateKey || !password || !extensionDir || !existsSync(extensionDir)) {
+  if (!isNonZeroAddress(expectedAccount) || !privateKey || !password || !extensionDir || !existsSync(extensionDir)) {
     const missing = [
-      !expectedAccount && 'SEPOLIA_WALLET_ADDRESS',
+      !isNonZeroAddress(expectedAccount) && 'SEPOLIA_WALLET_ADDRESS (non-zero address)',
       !privateKey && 'SEPOLIA_WALLET_PRIVATE_KEY',
       !password && 'METAMASK_PASSWORD',
       (!extensionDir || !existsSync(extensionDir)) && 'METAMASK_EXTENSION_DIR',

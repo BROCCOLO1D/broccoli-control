@@ -18,8 +18,13 @@ const expectedChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 11155111);
 const expectedAccount = process.env.SEPOLIA_WALLET_ADDRESS ?? process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS;
 const testAccount = `0x${'11'.repeat(20)}`;
 const wrongAccount = `0x${'22'.repeat(20)}`;
+const zeroAddress = `0x${'00'.repeat(20)}`;
 
-const realMetaMaskReady = process.env.WALLET_QA_REAL_METAMASK === '1' && Boolean(expectedAccount);
+function isNonZeroAddress(value: string | undefined): value is string {
+  return /^0x[a-fA-F0-9]{40}$/.test(value ?? '') && value?.toLowerCase() !== zeroAddress;
+}
+
+const realMetaMaskReady = process.env.WALLET_QA_REAL_METAMASK === '1' && isNonZeroAddress(expectedAccount);
 
 test('renders the Broccoli Control wallet QA fixture surface', async ({ page, walletArtifacts }) => {
   await page.goto('/');
@@ -172,7 +177,7 @@ test.describe('real MetaMask proof', () => {
 
   test('connects through a real MetaMask Chromium profile and writes public proof', async ({ walletArtifacts }) => {
     test.setTimeout(180_000);
-    if (!expectedAccount) throw new Error('Expected account is required for real MetaMask proof.');
+    if (!isNonZeroAddress(expectedAccount)) throw new Error('A non-zero Sepolia wallet address is required for real MetaMask proof.');
 
     const { runRealMetaMaskProof } = await import('../../scripts/real-metamask-proof.mjs');
     await runRealMetaMaskProof({
