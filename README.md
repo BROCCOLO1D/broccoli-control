@@ -8,7 +8,7 @@ The fixture is intentionally small. The point is not feature breadth; the point 
 
 ## What this fixture proves
 
-- A Next.js App Router dapp can consume `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.1` without repo-local wallet automation forks.
+- A Next.js App Router dapp can consume `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.5` without repo-local wallet automation forks.
 - Stable UI selectors expose wallet state, chain state, token configuration, transfer inputs, and transfer status for browser tests.
 - Foundry owns the ERC20 fixture contract, tests, and Sepolia deployment path.
 - Deterministic wallet QA writes public-safe proof manifests and screenshots in CI/local runs.
@@ -112,7 +112,7 @@ Default wallet QA is deterministic and does not touch a real wallet:
 npm run test:wallet
 ```
 
-The suite uses `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.1` helper APIs:
+The suite uses `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.5` helper APIs:
 
 ```ts
 import {

@@ -19,7 +19,7 @@ Artifacts are written below `.wallet-artifacts/broccoli-control/` and are ignore
 
 ## Helper API usage
 
-The tests and promotion script intentionally use the `@broccolo1d/*@0.2.1` public helper APIs:
+The tests and promotion script intentionally use the `@broccolo1d/*@0.2.5` public helper APIs:
 
 ```ts
 import {
