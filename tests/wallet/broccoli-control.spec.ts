@@ -15,7 +15,6 @@ import {
 
 const appOrigin = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:3000';
 const expectedChainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 11155111);
-const expectedAccount = process.env.SEPOLIA_WALLET_ADDRESS ?? process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS;
 const testAccount = `0x${'11'.repeat(20)}`;
 const wrongAccount = `0x${'22'.repeat(20)}`;
 const zeroAddress = `0x${'00'.repeat(20)}`;
@@ -25,6 +24,12 @@ const zeroTokenSafeMode = !process.env.PLAYWRIGHT_BASE_URL && configuredTokenAdd
 function isNonZeroAddress(value: string | undefined): value is string {
   return /^0x[a-fA-F0-9]{40}$/.test(value ?? '') && value?.toLowerCase() !== zeroAddress;
 }
+
+function firstNonZeroAddress(...values: Array<string | undefined>): string | undefined {
+  return values.find(isNonZeroAddress);
+}
+
+const expectedAccount = firstNonZeroAddress(process.env.SEPOLIA_WALLET_ADDRESS, process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS);
 
 const realMetaMaskReady = process.env.WALLET_QA_REAL_METAMASK === '1' && isNonZeroAddress(expectedAccount);
 
@@ -72,6 +77,17 @@ test('keeps the transfer harness inert in zero-token safe mode', async ({ page }
 
   await expect(page.getByTestId('transfer-token-button')).toBeDisabled();
   await expect(page.getByTestId('transfer-status')).toHaveText('Ready. No transaction in flight.');
+});
+
+test('resolves the first valid non-zero wallet address fallback deterministically', async () => {
+  const validSepolia = `0x${'ab'.repeat(20)}`;
+  const validDeployer = `0x${'cd'.repeat(20)}`;
+
+  expect(firstNonZeroAddress(undefined, validDeployer)).toBe(validDeployer);
+  expect(firstNonZeroAddress(zeroAddress, validDeployer)).toBe(validDeployer);
+  expect(firstNonZeroAddress('not-an-address', validDeployer)).toBe(validDeployer);
+  expect(firstNonZeroAddress(validSepolia, validDeployer)).toBe(validSepolia);
+  expect(firstNonZeroAddress(undefined, zeroAddress, '0x1234')).toBeUndefined();
 });
 
 test('records safe fail-closed wallet assertion examples', async ({ page, walletArtifacts }) => {
@@ -198,11 +214,11 @@ test('documents canonical helper guardrails from the published package', async (
 });
 
 test.describe('real MetaMask proof', () => {
-  test.skip(!realMetaMaskReady, 'Set WALLET_QA_REAL_METAMASK=1 and a Sepolia wallet address to run the real MetaMask proof.');
+  test.skip(!realMetaMaskReady, 'Set WALLET_QA_REAL_METAMASK=1 and a valid non-zero Sepolia wallet address (SEPOLIA_WALLET_ADDRESS, or NEXT_PUBLIC_DEPLOYER_ADDRESS fallback) to run the real MetaMask proof.');
 
   test('connects through a real MetaMask Chromium profile and writes public proof', async ({ walletArtifacts }) => {
     test.setTimeout(180_000);
-    if (!isNonZeroAddress(expectedAccount)) throw new Error('A non-zero Sepolia wallet address is required for real MetaMask proof.');
+    if (!isNonZeroAddress(expectedAccount)) throw new Error('A valid non-zero Sepolia wallet address is required for real MetaMask proof (SEPOLIA_WALLET_ADDRESS, or NEXT_PUBLIC_DEPLOYER_ADDRESS fallback).');
 
     const { runRealMetaMaskProof } = await import('../../scripts/real-metamask-proof.mjs');
     await runRealMetaMaskProof({

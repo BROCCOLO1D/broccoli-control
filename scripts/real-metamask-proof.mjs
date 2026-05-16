@@ -24,6 +24,10 @@ function isNonZeroAddress(value) {
   return /^0x[a-fA-F0-9]{40}$/.test(value ?? '') && value.toLowerCase() !== zeroAddress;
 }
 
+function firstNonZeroAddress(...values) {
+  return values.find(isNonZeroAddress);
+}
+
 function maskAddress(value) {
   return value ? maskEthereumAddress(value) : undefined;
 }
@@ -494,7 +498,7 @@ export async function runRealMetaMaskProof(options = {}) {
   const fileEnv = await readEnvFile(envFile);
   const env = { ...fileEnv, ...process.env, ...options.env };
   const envBaseDir = dirname(envFile);
-  const expectedAccount = options.expectedAccount ?? env.SEPOLIA_WALLET_ADDRESS ?? env.NEXT_PUBLIC_DEPLOYER_ADDRESS;
+  const expectedAccount = firstNonZeroAddress(options.expectedAccount, env.SEPOLIA_WALLET_ADDRESS, env.NEXT_PUBLIC_DEPLOYER_ADDRESS);
   const privateKey = env.SEPOLIA_WALLET_PRIVATE_KEY;
   const password = env.METAMASK_PASSWORD;
   const extensionDir = resolveMaybeRelative(env.METAMASK_EXTENSION_DIR, envBaseDir);
@@ -516,7 +520,7 @@ export async function runRealMetaMaskProof(options = {}) {
 
   if (!isNonZeroAddress(expectedAccount) || !privateKey || !password || !extensionDir || !existsSync(extensionDir)) {
     const missing = [
-      !isNonZeroAddress(expectedAccount) && 'SEPOLIA_WALLET_ADDRESS (non-zero address)',
+      !isNonZeroAddress(expectedAccount) && 'expectedAccount, SEPOLIA_WALLET_ADDRESS, or NEXT_PUBLIC_DEPLOYER_ADDRESS (valid non-zero 0x address)',
       !privateKey && 'SEPOLIA_WALLET_PRIVATE_KEY',
       !password && 'METAMASK_PASSWORD',
       (!extensionDir || !existsSync(extensionDir)) && 'METAMASK_EXTENSION_DIR',
