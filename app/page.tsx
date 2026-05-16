@@ -33,6 +33,10 @@ function shortAddress(value?: string) {
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
+function isNonZeroAddress(value: unknown): value is Address {
+  return typeof value === 'string' && isAddress(value) && value.toLowerCase() !== zeroAddress;
+}
+
 export default function Home() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
@@ -45,7 +49,7 @@ export default function Home() {
   const [amount, setAmount] = useState('');
   const [formError, setFormError] = useState('');
 
-  const tokenConfigured = isAddress(configuredTokenAddress) && configuredTokenAddress !== zeroAddress;
+  const tokenConfigured = isNonZeroAddress(configuredTokenAddress);
   const injectedConnector = connectors[0];
   const connectedAddress = address ?? fallbackAccount;
   const connectedChainId = address ? chainId : fallbackChainId;
@@ -89,7 +93,7 @@ export default function Home() {
     try {
       const accounts = await injectedEthereum()?.request({ method: 'eth_requestAccounts' });
       const [account] = Array.isArray(accounts) ? accounts : [];
-      if (typeof account === 'string' && isAddress(account)) setFallbackAccount(account as Address);
+      setFallbackAccount(isNonZeroAddress(account) ? account : undefined);
       const chainHex = await injectedEthereum()?.request({ method: 'eth_chainId' });
       if (typeof chainHex === 'string') setFallbackChainId(Number.parseInt(chainHex, 16));
       if (injectedConnector) connect({ connector: injectedConnector });
@@ -105,7 +109,7 @@ export default function Home() {
     if (!ethereum?.on) return undefined;
     const onAccountsChanged = (accounts: unknown) => {
       const [account] = Array.isArray(accounts) ? accounts : [];
-      setFallbackAccount(typeof account === 'string' && isAddress(account) ? account as Address : undefined);
+      setFallbackAccount(isNonZeroAddress(account) ? account : undefined);
     };
     const onChainChanged = (chain: unknown) => {
       if (typeof chain === 'string') setFallbackChainId(Number.parseInt(chain, 16));
@@ -115,7 +119,7 @@ export default function Home() {
     const refreshInjectedState = async () => {
       const accounts = await ethereum.request({ method: 'eth_accounts' }).catch(() => undefined);
       const [account] = Array.isArray(accounts) ? accounts : [];
-      setFallbackAccount(typeof account === 'string' && isAddress(account) ? account as Address : undefined);
+      setFallbackAccount(isNonZeroAddress(account) ? account : undefined);
       const chain = await ethereum.request({ method: 'eth_chainId' }).catch(() => undefined);
       if (typeof chain === 'string') setFallbackChainId(Number.parseInt(chain, 16));
     };

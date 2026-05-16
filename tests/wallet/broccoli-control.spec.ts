@@ -79,6 +79,40 @@ test('keeps the transfer harness inert in zero-token safe mode', async ({ page }
   await expect(page.getByTestId('transfer-status')).toHaveText('Ready. No transaction in flight.');
 });
 
+test('does not treat an injected zero address as a connected fallback wallet', async ({ page }) => {
+  await page.addInitScript(({ zeroAccount, chainIdHex }) => {
+    const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
+    Object.defineProperty(window, 'ethereum', {
+      configurable: true,
+      value: {
+        async request({ method }: { method: string }) {
+          if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+            (window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests =
+              ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) + 1;
+            return [zeroAccount];
+          }
+          if (method === 'eth_chainId') return chainIdHex;
+          return undefined;
+        },
+        on(event: string, listener: (...args: unknown[]) => void) {
+          const eventListeners = listeners.get(event) ?? new Set<(...args: unknown[]) => void>();
+          eventListeners.add(listener);
+          listeners.set(event, eventListeners);
+        },
+        removeListener(event: string, listener: (...args: unknown[]) => void) {
+          listeners.get(event)?.delete(listener);
+        },
+      },
+    });
+  }, { zeroAccount: zeroAddress, chainIdHex: chainIdToHex(expectedChainId) });
+
+  await page.goto('/');
+  await page.waitForFunction(() => ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) > 0);
+
+  await expect(page.getByTestId('connected-account')).toHaveText('Not connected');
+  await expect(page.getByTestId('connect-wallet-button')).toHaveText('Connect wallet');
+});
+
 test('resolves the first valid non-zero wallet address fallback deterministically', async () => {
   const validSepolia = `0x${'ab'.repeat(20)}`;
   const validDeployer = `0x${'cd'.repeat(20)}`;
