@@ -5,6 +5,7 @@ import {
   test,
   verifyWalletQaProofManifest,
 } from '@broccolo1d/playwright';
+import type { Page } from '@playwright/test';
 import {
   chainIdToHex,
   maskEthereumAddress,
@@ -32,6 +33,34 @@ function firstNonZeroAddress(...values: Array<string | undefined>): string | und
 const expectedAccount = firstNonZeroAddress(process.env.SEPOLIA_WALLET_ADDRESS, process.env.NEXT_PUBLIC_DEPLOYER_ADDRESS);
 
 const realMetaMaskReady = process.env.WALLET_QA_REAL_METAMASK === '1' && isNonZeroAddress(expectedAccount);
+
+async function installInjectedWalletStub(page: Page, account: string) {
+  await page.addInitScript(({ injectedAccount, chainIdHex }: { injectedAccount: string; chainIdHex: string }) => {
+    const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
+    Object.defineProperty(window, 'ethereum', {
+      configurable: true,
+      value: {
+        async request({ method }: { method: string }) {
+          if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
+            (window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests =
+              ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) + 1;
+            return [injectedAccount];
+          }
+          if (method === 'eth_chainId') return chainIdHex;
+          return undefined;
+        },
+        on(event: string, listener: (...args: unknown[]) => void) {
+          const eventListeners = listeners.get(event) ?? new Set<(...args: unknown[]) => void>();
+          eventListeners.add(listener);
+          listeners.set(event, eventListeners);
+        },
+        removeListener(event: string, listener: (...args: unknown[]) => void) {
+          listeners.get(event)?.delete(listener);
+        },
+      },
+    });
+  }, { injectedAccount: account, chainIdHex: chainIdToHex(expectedChainId) });
+}
 
 test('renders the Broccoli Control wallet QA fixture surface', async ({ page, walletArtifacts }) => {
   await page.goto('/');
@@ -79,32 +108,27 @@ test('keeps the transfer harness inert in zero-token safe mode', async ({ page }
   await expect(page.getByTestId('transfer-status')).toHaveText('Ready. No transaction in flight.');
 });
 
+test('keeps zero-token transfer submission disabled after an injected wallet connects', async ({ page }) => {
+  test.skip(!zeroTokenSafeMode, 'Zero-token safe-mode assertions require the local default Playwright web server.');
+
+  await installInjectedWalletStub(page, testAccount);
+  await page.goto('/');
+  await page.waitForFunction(() => ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) > 0);
+
+  await expect(page.getByTestId('connected-account')).toHaveText(testAccount);
+  await expect(page.getByTestId('connect-wallet-button')).toHaveText('Disconnect wallet');
+  await expect(page.getByTestId('token-address')).toHaveText(zeroAddress);
+  await expect(page.getByTestId('token-balance')).toHaveText('Set NEXT_PUBLIC_TOKEN_ADDRESS');
+
+  await page.getByTestId('transfer-recipient-input').fill(wrongAccount);
+  await page.getByTestId('transfer-amount-input').fill('1.0');
+
+  await expect(page.getByTestId('transfer-token-button')).toBeDisabled();
+  await expect(page.getByTestId('transfer-status')).toHaveText('Ready. No transaction in flight.');
+});
+
 test('does not treat an injected zero address as a connected fallback wallet', async ({ page }) => {
-  await page.addInitScript(({ zeroAccount, chainIdHex }) => {
-    const listeners = new Map<string, Set<(...args: unknown[]) => void>>();
-    Object.defineProperty(window, 'ethereum', {
-      configurable: true,
-      value: {
-        async request({ method }: { method: string }) {
-          if (method === 'eth_accounts' || method === 'eth_requestAccounts') {
-            (window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests =
-              ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) + 1;
-            return [zeroAccount];
-          }
-          if (method === 'eth_chainId') return chainIdHex;
-          return undefined;
-        },
-        on(event: string, listener: (...args: unknown[]) => void) {
-          const eventListeners = listeners.get(event) ?? new Set<(...args: unknown[]) => void>();
-          eventListeners.add(listener);
-          listeners.set(event, eventListeners);
-        },
-        removeListener(event: string, listener: (...args: unknown[]) => void) {
-          listeners.get(event)?.delete(listener);
-        },
-      },
-    });
-  }, { zeroAccount: zeroAddress, chainIdHex: chainIdToHex(expectedChainId) });
+  await installInjectedWalletStub(page, zeroAddress);
 
   await page.goto('/');
   await page.waitForFunction(() => ((window as Window & { __ethAccountsRequests?: number }).__ethAccountsRequests ?? 0) > 0);
