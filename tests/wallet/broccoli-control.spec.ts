@@ -19,6 +19,8 @@ const expectedAccount = process.env.SEPOLIA_WALLET_ADDRESS ?? process.env.NEXT_P
 const testAccount = `0x${'11'.repeat(20)}`;
 const wrongAccount = `0x${'22'.repeat(20)}`;
 const zeroAddress = `0x${'00'.repeat(20)}`;
+const configuredTokenAddress = process.env.NEXT_PUBLIC_TOKEN_ADDRESS ?? zeroAddress;
+const zeroTokenSafeMode = !process.env.PLAYWRIGHT_BASE_URL && configuredTokenAddress.toLowerCase() === zeroAddress;
 
 function isNonZeroAddress(value: string | undefined): value is string {
   return /^0x[a-fA-F0-9]{40}$/.test(value ?? '') && value?.toLowerCase() !== zeroAddress;
@@ -47,6 +49,29 @@ test('renders the Broccoli Control wallet QA fixture surface', async ({ page, wa
 
   await verifyWalletQaProofManifest(walletArtifacts.artifactDir);
   expect(manifest).toContain('wallet-qa-proof.json');
+});
+
+test('keeps the transfer harness inert in zero-token safe mode', async ({ page }) => {
+  test.skip(!zeroTokenSafeMode, 'Zero-token safe-mode assertions require the local default Playwright web server.');
+
+  await page.goto('/');
+
+  await expect(page.getByTestId('token-address')).toHaveText(zeroAddress);
+  await expect(page.getByTestId('token-balance')).toHaveText('Set NEXT_PUBLIC_TOKEN_ADDRESS');
+
+  const recipientInput = page.getByTestId('transfer-recipient-input');
+  const amountInput = page.getByTestId('transfer-amount-input');
+
+  await expect(recipientInput).toBeVisible();
+  await expect(recipientInput).toBeEditable();
+  await expect(amountInput).toBeVisible();
+  await expect(amountInput).toBeEditable();
+
+  await recipientInput.fill(testAccount);
+  await amountInput.fill('1.0');
+
+  await expect(page.getByTestId('transfer-token-button')).toBeDisabled();
+  await expect(page.getByTestId('transfer-status')).toHaveText('Ready. No transaction in flight.');
 });
 
 test('records safe fail-closed wallet assertion examples', async ({ page, walletArtifacts }) => {
