@@ -8,12 +8,13 @@ The fixture is intentionally small. The point is not feature breadth; the point 
 
 ## What this fixture proves
 
-- A Next.js App Router dapp can consume `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.5` without repo-local wallet automation forks.
+- A Next.js App Router dapp can consume `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` without repo-local wallet automation forks.
 - Stable UI selectors expose wallet state, chain state, token configuration, transfer inputs, and transfer status for browser tests.
 - Foundry owns the ERC20 fixture contract, tests, and Sepolia deployment path.
-- Deterministic wallet QA writes public-safe proof manifests and screenshots in CI/local runs.
+- Deterministic wallet QA writes public-safe proof manifests, screenshots, and artifact indexes in CI/local runs.
 - Real MetaMask can be exercised through a gated headed Chromium profile, then promoted only as redacted documentation artifacts.
 - Negative prompt assertions are recorded as examples: wrong origin, wrong account, and wrong chain reject before approval.
+- The same package workflow scales to product apps such as Wildcat: CI-safe app-shell smoke first, private-key-backed connected Sepolia proof only when reviewed testnet secrets are available.
 
 ## Screenshots
 
@@ -112,7 +113,7 @@ Default wallet QA is deterministic and does not touch a real wallet:
 npm run test:wallet
 ```
 
-The suite uses `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` `0.2.5` helper APIs:
+The suite uses `@broccolo1d/playwright` and `@broccolo1d/wallet-browser` helper APIs:
 
 ```ts
 import {
@@ -122,6 +123,18 @@ import {
 } from '@broccolo1d/playwright';
 import { chainIdToHex, maskEthereumAddress } from '@broccolo1d/wallet-browser';
 ```
+
+After writing proof manifests, write a public-safe artifact index for CI/review discovery:
+
+```ts
+await verifyWalletQaProofManifest(walletArtifacts.artifactDir, 'wallet-connected.json');
+await walletArtifacts.writeArtifactIndex({
+  manifestNames: ['wallet-connected.json'],
+  outputName: 'wallet-qa-artifact-index.json',
+});
+```
+
+Wildcat uses the same pattern at product-app scale: run a no-secret Sepolia app-shell smoke in CI, then promote connected-wallet screenshots only from a private-key-backed testnet MetaMask proof after review. That distinction matters: public-address-only injected wallet state is fine for deterministic UI smoke, but it is not positive connected-wallet evidence.
 
 Committed, reviewed proof artifacts:
 
